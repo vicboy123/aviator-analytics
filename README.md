@@ -1,24 +1,24 @@
-# Aviator Analytics
+# Aviator Analytics Dashboard
 
-A small browser-based app for viewing historical Aviator-style multiplier data in a more analytical and honest way.
+A browser-based dashboard that analyzes Aviator-style multiplier history in a transparent, non-predictive way.
 
-What this project does:
-- accepts round history input from the user
-- calculates average, median, min, max, and P95
-- groups results by multiplier ranges
-- shows a chart of the historical distribution
-- estimates a risk score based on variability
-- simulates a few betting strategies using the observed data
+Features:
+- round history input
+- CSV upload support
+- sample CSV download
+- average, median, min, max, and P95 calculations
+- distribution by multiplier range
+- risk analysis
+- bar chart and line chart views
+- simple strategy simulation
 
 Important:
-- This app does not promise to know the exact next crash outcome.
-- It is intended for educational analysis and statistical review only.
+- This project does not predict the exact next crash.
+- It is for historical analysis, trend review, and educational experimentation only.
 
 ## Run locally
 
-Open `index.html` in a browser.
-
-If you want to serve it through a local web server:
+Open `index.html` directly in your browser, or serve it locally:
 
 ```bash
 python3 -m http.server 8000
@@ -30,10 +30,26 @@ Then open:
 http://localhost:8000
 ```
 
-## Project files
-- `index.html` — main page
+## Files
+- `index.html` — app layout
 - `styles.css` — styling
-- `script.js` — analysis logic and simulation
+- `script.js` — analysis and simulation logic
 
-## Notes
-This project is designed to be transparent and non-deceptive: it analyzes past round history and gives ranges and risk indicators, but it does not claim certainty about future outcomes.
+## CSV format
+You can upload a CSV with either single-column values or multiple values per row.
+
+Example:
+
+```csv
+1.2
+2.5
+1.7
+5.6
+```
+
+or:
+
+```csv
+1.2,2.5,1.7,5.6
+3.1,1.4,2.0
+```

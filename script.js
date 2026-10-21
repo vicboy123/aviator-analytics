@@ -10,11 +10,34 @@ function parseHistory(raw) {
   if (!raw || !raw.trim()) return [];
 
   return raw
-    .split(/[ ,\n\r\t]+/)
+    .split(/[\n\r,;\t\s]+/)
     .map((value) => value.trim())
     .filter(Boolean)
     .map((value) => Number(value))
     .filter((value) => Number.isFinite(value) && value > 0);
+}
+
+function parseCsvText(text) {
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const values = [];
+
+  for (const line of lines) {
+    const tokens = line
+      .split(/[;,\s]+/)
+      .map((token) => token.trim())
+      .filter(Boolean);
+
+    for (const token of tokens) {
+      const num = Number(token);
+      if (Number.isFinite(num) && num > 0) values.push(num);
+    }
+  }
+
+  return values;
 }
 
 function calcStats(history) {
@@ -137,12 +160,13 @@ function drawChart(history) {
   const ctx = canvas.getContext("2d");
   const width = canvas.width;
   const height = canvas.height;
+  const chartType = document.getElementById("chartType").value;
 
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = "#0e1728";
   ctx.fillRect(0, 0, width, height);
 
-  const padding = { top: 20, right: 20, bottom: 32, left: 38 };
+  const padding = { top: 20, right: 20, bottom: 32, left: 40 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
 
@@ -156,13 +180,38 @@ function drawChart(history) {
   }
 
   if (!history.length) {
-    ctx.fillStyle = "#a9bfd9";
+    ctx.fillStyle = "#a8bfd9";
     ctx.font = "16px Arial";
     ctx.fillText("No data available", padding.left + 10, height / 2);
     return;
   }
 
   const maxValue = Math.max(...history, 1);
+
+  if (chartType === "line") {
+    ctx.beginPath();
+    history.forEach((value, index) => {
+      const x = padding.left + (index / Math.max(history.length - 1, 1)) * chartWidth;
+      const y = height - padding.bottom - (value / maxValue) * chartHeight;
+      if (index === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = "#5eead4";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    history.forEach((value, index) => {
+      const x = padding.left + (index / Math.max(history.length - 1, 1)) * chartWidth;
+      const y = height - padding.bottom - (value / maxValue) * chartHeight;
+      ctx.fillStyle = "#8b5cf6";
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    return;
+  }
+
   const bins = 12;
   const binSize = Math.max(1, (maxValue + 0.2) / bins);
   const bucketCounts = Array.from({ length: bins }, () => 0);
@@ -182,7 +231,7 @@ function drawChart(history) {
     ctx.fillStyle = idx % 2 === 0 ? "#5eead4" : "#8b5cf6";
     ctx.fillRect(x, height - padding.bottom - barHeight, barWidth, barHeight);
 
-    ctx.fillStyle = "#a9bfd9";
+    ctx.fillStyle = "#a8bfd9";
     ctx.font = "10px Arial";
     const label = `${(idx * binSize).toFixed(1)}x`;
     ctx.fillText(label, x, height - 10);
@@ -199,6 +248,41 @@ function analyzeHistory() {
 function loadSampleData() {
   document.getElementById("historyInput").value = sampleData.join(", ");
   analyzeHistory();
+}
+
+function downloadSampleCsv() {
+  const csvContent = sampleData.join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "aviator-sample.csv";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function handleCsvUpload(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (loadEvent) => {
+    const text = loadEvent.target?.result;
+    if (typeof text !== "string") return;
+
+    const values = parseCsvText(text);
+    if (!values.length) {
+      alert("No valid multipliers were found in that CSV file.");
+      return;
+    }
+
+    document.getElementById("historyInput").value = values.join(", ");
+    analyzeHistory();
+  };
+
+  reader.readAsText(file);
 }
 
 function getWeightedRandomValue(distribution, min = 1, max = 10) {
@@ -314,12 +398,15 @@ function simulateStrategy() {
     Final balance: $${finalBalance}<br />
     Net change: <strong>${Number(delta) >= 0 ? "+" : ""}$${delta}</strong><br />
     Wins: ${wins} | Losses: ${losses}<br /><br />
-    This is an educational simulation and not a real prediction system.
+    This is educational and non-predictive.
   `;
 }
 
 document.getElementById("analyzeBtn").addEventListener("click", analyzeHistory);
 document.getElementById("loadSampleBtn").addEventListener("click", loadSampleData);
 document.getElementById("simulateBtn").addEventListener("click", simulateStrategy);
+document.getElementById("downloadSampleBtn").addEventListener("click", downloadSampleCsv);
+document.getElementById("csvFileInput").addEventListener("change", handleCsvUpload);
+document.getElementById("chartType").addEventListener("change", analyzeHistory);
 
 loadSampleData();

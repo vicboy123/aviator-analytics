@@ -3,33 +3,45 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Aviator Analytics</title>
+    <title>Aviator Analytics Dashboard</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="container">
-      <header class="header">
+    <div class="app-shell">
+      <header class="topbar">
         <div>
           <p class="eyebrow">Aviator analytics</p>
-          <h1>Historical multiplier analysis</h1>
+          <h1>Historical multiplier dashboard</h1>
         </div>
         <span class="badge">No prediction claims</span>
       </header>
 
       <p class="subtitle">
-        This app analyzes multiplier history, frequency, volatility, risk, and strategy simulations.
-        It does not claim to know the exact next crash.
+        Review round history, multiplier distribution, volatility, and strategy simulation.
+        This app analyzes patterns in historical data and does not claim to know the next crash outcome.
       </p>
+
+      <div class="action-row">
+        <button id="analyzeBtn">Analyze history</button>
+        <button id="loadSampleBtn" class="secondary">Load sample</button>
+        <label class="file-picker">
+          <input id="csvFileInput" type="file" accept=".csv,text/csv" />
+          <span>Upload CSV</span>
+        </label>
+        <button id="downloadSampleBtn" class="ghost">Download sample CSV</button>
+      </div>
 
       <main class="grid">
         <section class="panel">
-          <h2>Round history</h2>
-          <textarea id="historyInput" placeholder="Paste multipliers, one per line or comma separated. Example: 1.2, 2.5, 1.7, 5.6, 1.4"></textarea>
-
-          <div class="controls">
-            <button id="analyzeBtn">Analyze history</button>
-            <button id="loadSampleBtn" class="secondary">Load sample</button>
+          <div class="panel-header-row">
+            <h2>Round history</h2>
+            <select id="chartType" aria-label="Chart type">
+              <option value="bars">Bar chart</option>
+              <option value="line">Line chart</option>
+            </select>
           </div>
+
+          <textarea id="historyInput" placeholder="Paste multipliers, one per line or comma separated. Example: 1.2, 2.5, 1.7, 5.6, 1.4"></textarea>
 
           <div class="stats-grid">
             <div class="stat-box">
@@ -69,7 +81,8 @@
           </div>
 
           <div class="notes">
-            Higher volatility means wider spread across the multiplier history. Distribution shows which multiplier ranges appear most often.
+            <strong>How to interpret:</strong><br />
+            Higher volatility means wider variation in multiplier values. The distribution shows which multiplier ranges appear most frequently in the sample.
           </div>
         </section>
 
@@ -121,7 +134,7 @@
           </div>
 
           <div id="simulateResult" class="summary-box small-box">
-            Simulate a strategy using your observed history. This is for educational analysis only.
+            Simulate a betting strategy using the observed history. This is educational and non-predictive.
           </div>
         </div>
       </section>

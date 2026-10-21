@@ -238,15 +238,42 @@ function drawChart(history) {
   });
 }
 
+function generateBotResponse(history) {
+  if (!history.length) {
+    return "I do not see any valid multiplier data yet. Please add a few values or upload a CSV file so I can review the pattern.";
+  }
+
+  const stats = calcStats(history);
+  const sorted = [...history].sort((a, b) => a - b);
+  const lowCount = history.filter((value) => value < 2).length;
+  const highCount = history.filter((value) => value >= 5).length;
+
+  let note = "The current sample is balanced.";
+  if (stats.risk >= 70) note = "This sample shows a high volatility pattern.";
+  else if (stats.risk >= 35) note = "This sample shows a moderate volatility pattern.";
+
+  let recommendation = "Use smaller bet sizing if you want to preserve stability while reviewing the data.";
+  if (stats.avg < 2) recommendation = "This sample is skewed toward lower multipliers, so it may be useful to review a larger dataset before drawing conclusions.";
+  else if (stats.avg > 3) recommendation = "This sample includes more stronger multiplier events, which may suggest a wider spread in the observed data.";
+
+  return `I reviewed ${history.length} rounds. The average multiplier is ${stats.avg.toFixed(2)}x, median is ${stats.median.toFixed(2)}x, and the 95th percentile is ${stats.p95.toFixed(2)}x. The most frequent band is ${Object.entries(stats.distribution).sort((a, b) => b[1] - a[1])[0][0]}, with ${Object.entries(stats.distribution).sort((a, b) => b[1] - a[1])[0][1].toFixed(1)}% of observations. ${note} ${recommendation} This is a historical analysis only and not a guaranteed prediction of the next result.`;
+}
+
 function analyzeHistory() {
   const raw = document.getElementById("historyInput").value;
   const history = parseHistory(raw);
   renderStats(history);
   drawChart(history);
+
+  const botInput = document.getElementById("botInput");
+  if (botInput && !botInput.value.trim()) {
+    botInput.value = raw;
+  }
 }
 
 function loadSampleData() {
   document.getElementById("historyInput").value = sampleData.join(", ");
+  document.getElementById("botInput").value = sampleData.join(", ");
   analyzeHistory();
 }
 
@@ -278,11 +305,20 @@ function handleCsvUpload(event) {
       return;
     }
 
-    document.getElementById("historyInput").value = values.join(", ");
+    const formatted = values.join(", ");
+    document.getElementById("historyInput").value = formatted;
+    document.getElementById("botInput").value = formatted;
     analyzeHistory();
   };
 
   reader.readAsText(file);
+}
+
+function askBot() {
+  const raw = document.getElementById("botInput").value.trim();
+  const history = parseHistory(raw || document.getElementById("historyInput").value);
+  const response = generateBotResponse(history);
+  document.getElementById("botResult").innerHTML = response;
 }
 
 function getWeightedRandomValue(distribution, min = 1, max = 10) {
@@ -408,5 +444,6 @@ document.getElementById("simulateBtn").addEventListener("click", simulateStrateg
 document.getElementById("downloadSampleBtn").addEventListener("click", downloadSampleCsv);
 document.getElementById("csvFileInput").addEventListener("change", handleCsvUpload);
 document.getElementById("chartType").addEventListener("change", analyzeHistory);
+document.getElementById("botBtn").addEventListener("click", askBot);
 
 loadSampleData();

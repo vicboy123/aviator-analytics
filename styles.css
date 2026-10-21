@@ -312,6 +312,19 @@ canvas {
   margin-top: 16px;
 }
 
+.bot-panel {
+  margin-top: 22px;
+}
+
+.bot-layout {
+  display: grid;
+  gap: 12px;
+}
+
+.bot-output {
+  margin-top: 12px;
+}
+
 @media (max-width: 900px) {
   .grid,
   .bottom-grid {

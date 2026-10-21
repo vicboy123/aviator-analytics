@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aviator Analytics</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header class="header">
+        <div>
+          <p class="eyebrow">Aviator analytics</p>
+          <h1>Historical multiplier analysis</h1>
+        </div>
+        <span class="badge">No prediction claims</span>
+      </header>
+
+      <p class="subtitle">
+        This app analyzes multiplier history, frequency, volatility, risk, and strategy simulations.
+        It does not claim to know the exact next crash.
+      </p>
+
+      <main class="grid">
+        <section class="panel">
+          <h2>Round history</h2>
+          <textarea id="historyInput" placeholder="Paste multipliers, one per line or comma separated. Example: 1.2, 2.5, 1.7, 5.6, 1.4"></textarea>
+
+          <div class="controls">
+            <button id="analyzeBtn">Analyze history</button>
+            <button id="loadSampleBtn" class="secondary">Load sample</button>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-box">
+              <div class="stat-label">Average</div>
+              <div class="stat-value" id="avgValue">-</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Median</div>
+              <div class="stat-value" id="medianValue">-</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Min</div>
+              <div class="stat-value" id="minValue">-</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Max</div>
+              <div class="stat-value" id="maxValue">-</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">P95</div>
+              <div class="stat-value" id="p95Value">-</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Risk</div>
+              <div class="stat-value" id="riskValue">-</div>
+            </div>
+          </div>
+
+          <div class="risk-meter">
+            <div class="risk-row">
+              <span>Risk meter</span>
+              <strong id="riskText">-</strong>
+            </div>
+            <div class="meter">
+              <div class="meter-fill" id="riskBar"></div>
+            </div>
+          </div>
+
+          <div class="notes">
+            Higher volatility means wider spread across the multiplier history. Distribution shows which multiplier ranges appear most often.
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Distribution by range</h2>
+          <div id="distributionContainer" class="bars"></div>
+          <div id="summaryBox" class="summary-box">
+            Add round history to view summary insights.
+          </div>
+        </section>
+      </main>
+
+      <section class="bottom-grid">
+        <div class="panel chart-panel">
+          <h2>Multiplier chart</h2>
+          <div class="chart-box">
+            <canvas id="chartCanvas" width="760" height="260"></canvas>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Strategy simulator</h2>
+          <div class="strategy-form">
+            <label>
+              Starting balance
+              <input id="balance" type="number" value="100" min="10" step="10" />
+            </label>
+
+            <label>
+              Bet per round
+              <input id="bet" type="number" value="10" min="1" step="1" />
+            </label>
+
+            <label>
+              Strategy
+              <select id="strategy">
+                <option value="flat">Flat betting</option>
+                <option value="martingale">Martingale</option>
+                <option value="anti">Anti-martingale</option>
+              </select>
+            </label>
+
+            <label>
+              Number of rounds
+              <input id="rounds" type="number" value="50" min="10" max="500" />
+            </label>
+
+            <button id="simulateBtn">Run simulation</button>
+          </div>
+
+          <div id="simulateResult" class="summary-box small-box">
+            Simulate a strategy using your observed history. This is for educational analysis only.
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>

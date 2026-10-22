@@ -6,12 +6,26 @@ const sampleData = [
   1.5, 1.9, 3.3, 1.4, 7.1, 2.8, 1.7, 5.2, 2.6, 1.3
 ];
 
-function parseHistory(raw) {
-  if (!raw || !raw.trim()) return [];
+function normalizeHistoryText(raw) {
+  if (!raw || !raw.trim()) return "";
 
   return raw
-    .split(/[\n\r,;\t\s]+/)
-    .map((value) => value.trim())
+    .replace(/x/gi, " ")
+    .replace(/[\r\n]+/g, " ")
+    .replace(/,/g, " ")
+    .replace(/;/g, " ")
+    .replace(/\t+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseHistory(raw) {
+  const normalized = normalizeHistoryText(raw);
+  if (!normalized) return [];
+
+  return normalized
+    .split(/\s+/)
+    .map((value) => value.trim().replace(/[^0-9.\-]/g, ""))
     .filter(Boolean)
     .map((value) => Number(value))
     .filter((value) => Number.isFinite(value) && value > 0);
@@ -28,7 +42,7 @@ function parseCsvText(text) {
   for (const line of lines) {
     const tokens = line
       .split(/[;,\s]+/)
-      .map((token) => token.trim())
+      .map((token) => token.trim().replace(/x/gi, "").replace(/[^0-9.\-]/g, ""))
       .filter(Boolean);
 
     for (const token of tokens) {
@@ -38,6 +52,13 @@ function parseCsvText(text) {
   }
 
   return values;
+}
+
+function getPercentile(sorted, percentile) {
+  if (!sorted.length) return 0;
+  const safePercentile = Math.min(100, Math.max(0, percentile));
+  const index = Math.max(0, Math.min(sorted.length - 1, Math.ceil((safePercentile / 100) * sorted.length) - 1));
+  return sorted[index];
 }
 
 function calcStats(history) {
@@ -103,6 +124,42 @@ function calcStats(history) {
   };
 }
 
+function calcCashoutGuide(history) {
+  if (!history.length) {
+    return {
+      conservative: 0,
+      balanced: 0,
+      aggressive: 0,
+      summary: "Add round history to receive a risk-aware cashout guide."
+    };
+  }
+
+  const sorted = [...history].sort((a, b) => a - b);
+  const recent = history.slice(-Math.min(25, history.length));
+  const recentAvg = recent.reduce((sum, value) => sum + value, 0) / recent.length;
+  const recentVariance = recent.reduce((sum, value) => sum + (value - recentAvg) ** 2, 0) / recent.length;
+  const recentStdDev = Math.sqrt(recentVariance);
+
+  const conservative = getPercentile(sorted, 55);
+  const balanced = getPercentile(sorted, 70);
+  const aggressive = getPercentile(sorted, 85);
+
+  let summary = "Use the conservative cashout target if you want to lock in gains before a wider swing appears.";
+
+  if (recentStdDev > 2.5 || recentAvg > balanced) {
+    summary = "Recent results are elevated and more volatile than usual. A tighter exit is safer than chasing the upper tail.";
+  } else if (recentAvg < conservative) {
+    summary = "The recent sample is softer than the broader history. Protect profits with a conservative exit and avoid large chasing moves.";
+  }
+
+  return {
+    conservative,
+    balanced,
+    aggressive,
+    summary
+  };
+}
+
 function renderDistribution(distribution) {
   const container = document.getElementById("distributionContainer");
   container.innerHTML = "";
@@ -152,6 +209,37 @@ function renderStats(history) {
   document.getElementById("summaryBox").innerHTML = `
     <strong>Summary</strong><br />
     ${stats.summary}
+  `;
+}
+
+function renderCashoutGuide(history) {
+  const container = document.getElementById("cashoutGuide");
+  if (!container) return;
+
+  if (!history.length) {
+    container.innerHTML = "Add round history to generate a risk-aware cashout guide.";
+    return;
+  }
+
+  const guide = calcCashoutGuide(history);
+
+  container.innerHTML = `
+    <div class="cashout-grid">
+      <div class="cashout-box">
+        <span>Conservative</span>
+        <strong>${guide.conservative.toFixed(2)}x</strong>
+      </div>
+      <div class="cashout-box">
+        <span>Balanced</span>
+        <strong>${guide.balanced.toFixed(2)}x</strong>
+      </div>
+      <div class="cashout-box">
+        <span>Aggressive</span>
+        <strong>${guide.aggressive.toFixed(2)}x</strong>
+      </div>
+    </div>
+    <p class="cashout-summary">${guide.summary}</p>
+    <p class="cashout-disclaimer">This is a risk-based recommendation only, not a prediction of the next round. It does not guarantee a win or a loss.</p>
   `;
 }
 
@@ -244,7 +332,6 @@ function generateBotResponse(history) {
   }
 
   const stats = calcStats(history);
-  const sorted = [...history].sort((a, b) => a - b);
   const lowCount = history.filter((value) => value < 2).length;
   const highCount = history.filter((value) => value >= 5).length;
 
@@ -256,18 +343,40 @@ function generateBotResponse(history) {
   if (stats.avg < 2) recommendation = "This sample is skewed toward lower multipliers, so it may be useful to review a larger dataset before drawing conclusions.";
   else if (stats.avg > 3) recommendation = "This sample includes more stronger multiplier events, which may suggest a wider spread in the observed data.";
 
-  return `I reviewed ${history.length} rounds. The average multiplier is ${stats.avg.toFixed(2)}x, median is ${stats.median.toFixed(2)}x, and the 95th percentile is ${stats.p95.toFixed(2)}x. The most frequent band is ${Object.entries(stats.distribution).sort((a, b) => b[1] - a[1])[0][0]}, with ${Object.entries(stats.distribution).sort((a, b) => b[1] - a[1])[0][1].toFixed(1)}% of observations. ${note} ${recommendation} This is a historical analysis only and not a guaranteed prediction of the next result.`;
+  return `I reviewed ${history.length} rounds. The average multiplier is ${stats.avg.toFixed(2)}x, median is ${stats.median.toFixed(2)}x, and the 95th percentile is ${stats.p95.toFixed(2)}x. ${note} ${recommendation} This is a historical analysis, not a prediction about the next result.`;
 }
 
 function analyzeHistory() {
   const raw = document.getElementById("historyInput").value;
   const history = parseHistory(raw);
   renderStats(history);
+  renderCashoutGuide(history);
   drawChart(history);
 
   const botInput = document.getElementById("botInput");
   if (botInput && !botInput.value.trim()) {
     botInput.value = raw;
+  }
+}
+
+async function pasteHistoryFromClipboard() {
+  try {
+    if (!navigator.clipboard || !navigator.clipboard.readText) {
+      throw new Error("Clipboard API unavailable");
+    }
+
+    const text = await navigator.clipboard.readText();
+    if (!text.trim()) {
+      alert("Clipboard is empty. Copy some history first.");
+      return;
+    }
+
+    const pasted = text.replace(/x/gi, " ").trim();
+    document.getElementById("historyInput").value = pasted;
+    document.getElementById("botInput").value = pasted;
+    analyzeHistory();
+  } catch (error) {
+    alert("Clipboard access was blocked. Please copy the data manually and paste it into the input box.");
   }
 }
 
@@ -439,6 +548,7 @@ function simulateStrategy() {
 }
 
 document.getElementById("analyzeBtn").addEventListener("click", analyzeHistory);
+document.getElementById("pasteFromClipboardBtn").addEventListener("click", pasteHistoryFromClipboard);
 document.getElementById("loadSampleBtn").addEventListener("click", loadSampleData);
 document.getElementById("simulateBtn").addEventListener("click", simulateStrategy);
 document.getElementById("downloadSampleBtn").addEventListener("click", downloadSampleCsv);

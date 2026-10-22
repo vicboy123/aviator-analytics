@@ -124,6 +124,40 @@ function calcStats(history) {
   };
 }
 
+function calcPredictionEstimate(history) {
+  if (!history.length) {
+    return {
+      low: 0,
+      high: 0,
+      frequency: 0,
+      label: "No data",
+      note: "Add round history to generate an educational estimate."
+    };
+  }
+
+  const sorted = [...history].sort((a, b) => a - b);
+  const lower = getPercentile(sorted, 35);
+  const upper = getPercentile(sorted, 70);
+  const bandWidth = Math.max(0.5, (upper - lower) / 2);
+  const estimateLow = Number(Math.max(1.0, lower - bandWidth).toFixed(2));
+  const estimateHigh = Number(Math.min(10, upper + bandWidth).toFixed(2));
+
+  const inBand = history.filter((value) => value >= estimateLow && value <= estimateHigh).length;
+  const frequency = (inBand / history.length) * 100;
+
+  let label = "Moderate";
+  if (frequency >= 40) label = "High";
+  else if (frequency < 20) label = "Low";
+
+  return {
+    low: estimateLow,
+    high: estimateHigh,
+    frequency,
+    label,
+    note: `Educational estimate: ${estimateLow.toFixed(2)}x–${estimateHigh.toFixed(2)}x. This band appears in about ${frequency.toFixed(1)}% of the current sample. It is based on historical data only and does not predict the next outcome.`
+  };
+}
+
 function calcCashoutGuide(history) {
   if (!history.length) {
     return {
@@ -243,6 +277,27 @@ function renderCashoutGuide(history) {
   `;
 }
 
+function renderPredictionEstimate(history) {
+  const container = document.getElementById("predictionBand");
+  if (!container) return;
+
+  if (!history.length) {
+    container.innerHTML = "Add round history to generate a historical estimate.";
+    return;
+  }
+
+  const estimate = calcPredictionEstimate(history);
+  container.innerHTML = `
+    <div class="prediction-header">
+      <strong>Historical estimate</strong>
+      <span class="prediction-label">${estimate.label}</span>
+    </div>
+    <div class="prediction-band">${estimate.low.toFixed(2)}x – ${estimate.high.toFixed(2)}x</div>
+    <div class="prediction-frequency">Observed in about ${estimate.frequency.toFixed(1)}% of the sample</div>
+    <p class="prediction-note">${estimate.note}</p>
+  `;
+}
+
 function drawChart(history) {
   const canvas = document.getElementById("chartCanvas");
   const ctx = canvas.getContext("2d");
@@ -332,6 +387,7 @@ function generateBotResponse(history) {
   }
 
   const stats = calcStats(history);
+  const sorted = [...history].sort((a, b) => a - b);
   const lowCount = history.filter((value) => value < 2).length;
   const highCount = history.filter((value) => value >= 5).length;
 
@@ -351,6 +407,7 @@ function analyzeHistory() {
   const history = parseHistory(raw);
   renderStats(history);
   renderCashoutGuide(history);
+  renderPredictionEstimate(history);
   drawChart(history);
 
   const botInput = document.getElementById("botInput");

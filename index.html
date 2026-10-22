@@ -24,6 +24,7 @@
       <div class="action-row">
         <button id="analyzeBtn">Analyze history</button>
         <button id="loadSampleBtn" class="secondary">Load sample</button>
+        <button id="pasteFromClipboardBtn" class="secondary">Paste copied history</button>
         <label class="file-picker">
           <input id="csvFileInput" type="file" accept=".csv,text/csv" />
           <span>Upload CSV</span>
@@ -41,7 +42,7 @@
             </select>
           </div>
 
-          <textarea id="historyInput" placeholder="Paste multipliers, one per line or comma separated. Example: 1.2, 2.5, 1.7, 5.6, 1.4"></textarea>
+          <textarea id="historyInput" placeholder="Paste multipliers, one per line or comma separated. Example: 1.2, 2.5, 1.7, 5.6, 1.4. You can also paste copied values like 2.1x, 3.4x, 1.8x"></textarea>
 
           <div class="stats-grid">
             <div class="stat-box">
